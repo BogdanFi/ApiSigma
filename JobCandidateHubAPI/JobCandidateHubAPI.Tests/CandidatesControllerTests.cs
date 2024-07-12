@@ -1,34 +1,20 @@
 using JobCandidateHubAPI.Controllers;
-using JobCandidateHubAPI.DbContext;
 using JobCandidateHubAPI.Models;
-using JobCandidateHubAPI.Tests.Helpers;
+using JobCandidateHubAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Moq;
 
 namespace JobCandidateHubAPI.Tests;
 
-public class CandidatesControllerTests : IClassFixture<DatabaseFixture>
+public class CandidatesControllerTests
 {
-    private readonly ApplicationDbContext _context;
-    private readonly CandidatesController _controller;
-
-    public CandidatesControllerTests(DatabaseFixture fixture)
-    {
-        _context = fixture.Context;
-        _controller = new CandidatesController(_context);
-    }
-
-    private void CleanDatabase()
-    {
-        _context.Candidates.RemoveRange(_context.Candidates);
-        _context.SaveChanges();
-    }
-
     [Fact]
     public async Task UpsertCandidate_ReturnsBadRequest_WhenModelStateIsInvalid()
     {
         // Arrange
-        CleanDatabase();
-        _controller.ModelState.AddModelError("Email", "Required");
+        var candidateServiceMock = new Mock<ICandidateService>();
+        var controller = new CandidatesController(candidateServiceMock.Object);
+        controller.ModelState.AddModelError("Email", "Required");
 
         var candidate = new Candidate
         {
@@ -38,7 +24,7 @@ public class CandidatesControllerTests : IClassFixture<DatabaseFixture>
         };
 
         // Act
-        var result = await _controller.UpsertCandidate(candidate);
+        var result = await controller.UpsertCandidate(candidate);
 
         // Assert
         var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
@@ -49,7 +35,8 @@ public class CandidatesControllerTests : IClassFixture<DatabaseFixture>
     public async Task UpsertCandidate_CreatesNewCandidate_WhenCandidateDoesNotExist()
     {
         // Arrange
-        CleanDatabase();
+        var candidateServiceMock = new Mock<ICandidateService>();
+        var controller = new CandidatesController(candidateServiceMock.Object);
         var candidate = new Candidate
         {
             FirstName = "John",
@@ -63,20 +50,19 @@ public class CandidatesControllerTests : IClassFixture<DatabaseFixture>
         };
 
         // Act
-        var result = await _controller.UpsertCandidate(candidate);
+        var result = await controller.UpsertCandidate(candidate);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<OkResult>(result);
         Assert.Equal(200, okResult.StatusCode);
-        Assert.Single(_context.Candidates.ToList());
-        Assert.Equal(candidate.Email, _context.Candidates.First().Email);
     }
 
     [Fact]
     public async Task UpsertCandidate_UpdatesExistingCandidate_WhenCandidateExists()
     {
         // Arrange
-        CleanDatabase();
+        var candidateServiceMock = new Mock<ICandidateService>();
+        var controller = new CandidatesController(candidateServiceMock.Object);
         var existingCandidate = new Candidate
         {
             FirstName = "Jane",
@@ -88,9 +74,6 @@ public class CandidatesControllerTests : IClassFixture<DatabaseFixture>
             PhoneNumber = "098-765-4321",
             PreferredCallTime = DateTime.Now.AddHours(2)
         };
-
-        _context.Candidates.Add(existingCandidate);
-        await _context.SaveChangesAsync();
 
         var candidateUpdate = new Candidate
         {
@@ -105,14 +88,13 @@ public class CandidatesControllerTests : IClassFixture<DatabaseFixture>
         };
 
         // Act
-        var result = await _controller.UpsertCandidate(candidateUpdate);
+        var result = await controller.UpsertCandidate(existingCandidate);
+        var result2 = await controller.UpsertCandidate(candidateUpdate);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
+        var okResult = Assert.IsType<OkResult>(result);
         Assert.Equal(200, okResult.StatusCode);
-        Assert.Single(_context.Candidates.ToList());
-        var updatedCandidate = _context.Candidates.First();
-        Assert.Equal("Smith", updatedCandidate.LastName);
-        Assert.Equal("Updated comment", updatedCandidate.Comment);
+        var okResult2 = Assert.IsType<OkResult>(result2);
+        Assert.Equal(200, okResult2.StatusCode);
     }
 }

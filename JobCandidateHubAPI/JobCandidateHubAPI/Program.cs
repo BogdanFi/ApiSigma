@@ -1,4 +1,8 @@
 using JobCandidateHubAPI.DbContext;
+using JobCandidateHubAPI.Repositories;
+using JobCandidateHubAPI.Repositories.Interfaces;
+using JobCandidateHubAPI.Services;
+using JobCandidateHubAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +16,9 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ICandidateService,CandidateService>();
+builder.Services.AddScoped<ICandidateRepository, CandidateRepository>();
 
 var app = builder.Build();
 
