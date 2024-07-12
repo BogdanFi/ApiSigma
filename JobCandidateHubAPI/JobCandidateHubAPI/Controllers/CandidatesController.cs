@@ -16,7 +16,7 @@ namespace JobCandidateHubAPI.Controllers
             _context = context;
         }
 
-        [HttpPost]
+        [HttpPut]
         public async Task<IActionResult> UpsertCandidate([FromBody] Candidate candidate)
         {
             if (!ModelState.IsValid)
@@ -37,8 +37,8 @@ namespace JobCandidateHubAPI.Controllers
                 existingCandidate.LastName = candidate.LastName;
                 existingCandidate.PhoneNumber = candidate.PhoneNumber;
                 existingCandidate.PreferredCallTime = candidate.PreferredCallTime;
-                existingCandidate.LinkedInProfile = candidate.LinkedInProfile;
-                existingCandidate.GitHubProfile = candidate.GitHubProfile;
+                existingCandidate.LinkedInProfileURL = candidate.LinkedInProfileURL;
+                existingCandidate.GitHubProfileURL = candidate.GitHubProfileURL;
                 existingCandidate.Comment = candidate.Comment;
             }
 
